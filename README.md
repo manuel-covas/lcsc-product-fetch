@@ -1,7 +1,14 @@
 # lcsc-product-fetch
 Python script to scrape product details from lcsc.com's web page.\
-Output is written out to a CSV file.\
-**Requires Python 3**
+Output is written out to a CSV file.
+
+# Requirements
+Python 3 or newer is required to run this.\
+The dependencies listed in the `requirements.txt` file must also be satisfied:
+- `alive-progress`
+- `requests`
+
+You can do this with `python -m pip install -r requirements.txt`
 
 # Usage
 ```bash
@@ -45,6 +52,7 @@ Output:
 | ------------------ | --------------- | ------- | ------------ | ------------------------ | ------------------- |
 | C191386            | 31120           | DIP-4   | Orient       | ORPC-817C                | TransistorOptocouplers 1 5000Vrms DIP-4 Optocouplers RoHS |
 | C104604            | 89700           | 1206    | RALEC        | RTT06105JTP              | 1MΩ ±5% 1/4W ±100ppm/℃ 1206 Chip Resistor - Surface Mount RoHS |
+
 `output.csv`:
 ```
 LCSC Product Code,Amount in Stock,Package,Manufacturer,Manufacturer Part Number,Product Description
