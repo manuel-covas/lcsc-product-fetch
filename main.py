@@ -20,7 +20,7 @@ def print_usage():
     print("    In this mode the product codes in the file at 'path' will")
     print("    be fetched and the output will be saved to <path>'.csv'\n")
     print("  'inline':")
-    print("    In this mode, the product codes in the 'product_code' argument")
+    print("    In this mode, the product codes in the 'product_codes' argument")
     print("    will be fetched and the output will be saved to 'output.csv'\n")
     exit()
 
