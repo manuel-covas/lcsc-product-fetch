@@ -130,7 +130,8 @@ def scrape_product_details(product, progress_bar):
             "lcsc_product_code":        response.split('<td>LCSC Part #</td>')[1].split('<td id="product-id" data-id="')[1].split('">')[1].split('</td>')[0],
             "package":                  response.split('<td>Package</td>')[1].split('<td>')[1].split('</td>')[0],
             "product_description":      response.split('Description</td>')[1].split('<td><p>')[1].split('</p></td>')[0],
-            "amount_in_stock":          response.split('<span class="all-stock">')[1].split('</span>')[0]
+            "amount_in_stock":          response.split('<span class="all-stock">')[1].split('</span>')[0],
+            "product_page": product["url"]
         }
         progress_bar()
         return scraped_product
@@ -153,7 +154,8 @@ async def scrape_products():
         "lcsc_product_code": [],
         "package": [],
         "product_description": [],
-        "amount_in_stock": []
+        "amount_in_stock": [],
+        "product_page": []
     }
 
     # Proceed to scrape product details.
@@ -177,22 +179,24 @@ async def scrape_products():
             scraped_data["package"].append(scraped_product["package"])
             scraped_data["product_description"].append(scraped_product["product_description"])
             scraped_data["amount_in_stock"].append(scraped_product["amount_in_stock"])
+            scraped_data["product_page"].append(scraped_product["product_page"])
     
     return scraped_data
 
 
 scraped_data = asyncio.run(scrape_products())
-output_csv = "LCSC Product Code,Amount in Stock,Package,Manufacturer,Manufacturer Part Number,Product Description"
+output_csv = "LCSC Product Code,Amount in Stock,Package,Manufacturer,Manufacturer Part Number,Product Description,Product Page"
 
 for i in range(len(scraped_data["lcsc_product_code"])):
 
-    output_csv += '\n"{}","{}","{}","{}","{}","{}"'.format(
+    output_csv += '\n"{}","{}","{}","{}","{}","{}","{}"'.format(
         scraped_data["lcsc_product_code"][i],
         scraped_data["amount_in_stock"][i],
         scraped_data["package"][i],
         scraped_data["manufacturer"][i],
         scraped_data["manufacturer_part_number"][i],
-        scraped_data["product_description"][i]
+        scraped_data["product_description"][i],
+        scraped_data["product_page"][i]
     )
 
 if opertion_mode == "file":
