@@ -111,8 +111,9 @@ if len(valid_products) == 0:
     exit()
 
 print("Found {} out of {} products.".format(len(valid_products), len(product_codes)))
-print("Dropping the following product codes:")
 
+if len(dropped_products) > 0:
+    print("Dropping the following product codes:")
 for product in dropped_products:
     print("  - {}".format(product["product_code"]))
 
@@ -125,14 +126,46 @@ def scrape_product_details(product, progress_bar):
     try:
         response = requests.get(product["url"]).text
         scraped_product = {
-            "manufacturer":             response.split('<td> Manufacturer </td>')[1].split('class="detail-brand-title">')[1].split('</a>')[0],
-            "manufacturer_part_number": response.split('<td>Mfr.Part #</td>')[1].split('<td class="detail-mpn-title">')[1].split('</td>')[0],
-            "lcsc_product_code":        response.split('<td>LCSC Part #</td>')[1].split('<td id="product-id" data-id="')[1].split('">')[1].split('</td>')[0],
-            "package":                  response.split('<td>Package</td>')[1].split('<td>')[1].split('</td>')[0],
-            "product_description":      response.split('Description</td>')[1].split('<td><p>')[1].split('</p></td>')[0],
-            "amount_in_stock":          response.split('<span class="all-stock">')[1].split('</span>')[0],
+            "manufacturer":             "Scraping Failed",
+            "manufacturer_part_number": "Scraping Failed",
+            "lcsc_product_code":        "Scraping Failed",
+            "package":                  "Scraping Failed",
+            "product_description":      "Scraping Failed",
+            "amount_in_stock":          "Scraping Failed",
             "product_page": product["url"]
         }
+
+        # Attempt to scrape
+
+        try:
+            scraped_product["manufacturer"] = response.split('<td> Manufacturer </td>')[1].split('class="detail-brand-title">')[1].split('</a>')[0]
+        except:
+            pass
+        try:
+            scraped_product["manufacturer_part_number"] = response.split('<td>Mfr.Part #</td>')[1].split('<td class="detail-mpn-title">')[1].split('</td>')[0]
+        except:
+            pass
+        try:
+            scraped_product["lcsc_product_code"] = response.split('<td>LCSC Part #</td>')[1].split('<td id="product-id" data-id="')[1].split('">')[1].split('</td>')[0]
+        except:
+            pass
+        try:
+            scraped_product["package"] = response.split('<td>Package</td>')[1].split('<td>')[1].split('</td>')[0]
+        except:
+            pass
+        try:
+            scraped_product["product_description"] = response.split('Description</td>')[1].split('<td><p>')[1].split('</p></td>')[0]
+        except:
+            pass
+        try:
+            scraped_product["amount_in_stock"] = response.split('<span class="all-stock">')[1].split('</span>')[0]
+        except:
+            pass
+        try:
+            scraped_product["product_page"] = product["url"]
+        except:
+            pass
+
         progress_bar()
         return scraped_product
     except Exception as err:
