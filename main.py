@@ -49,16 +49,30 @@ else:
 
 def lookup_product_code(product_code, progress_bar):
     try:
-        response = json.loads(requests.get("https://lcsc.com/api/global/additional/search?q={}".format(product_code)).text)
+        response: dict = requests.get(
+            f"https://wmsc.lcsc.com/ftps/wm/product/detail?productCode={product_code}",
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
+            }
+        ).json()
 
-        if response["success"]:
-            if response["result"]["lcsc_part_number"]:
-                progress_bar()
-                return {
-                    "success": True, 
-                    "product_code": product_code,
-                    "url": "https://lcsc.com"+response["result"]["links"]
+        if response["result"] != None:
+            result: dict = response["result"]
+            progress_bar()
+            return {
+                "success": True, 
+                "product_code": product_code,
+                "product_details": {
+                    "manufacturer":             result.get("brandNameEn"),
+                    "manufacturer_part_number": result.get("productModel"),
+                    "lcsc_product_code":        product_code,
+                    "package":                  result.get("encapStandard"),
+                    "product_description":      result.get("productIntroEn"),
+                    "amount_in_stock":          result.get("stockNumber"),
+                    "product_page":             f"https://www.lcsc.com/product-detail/{product_code}.html"
                 }
+            }
+
     except:
         pass
     progress_bar()
@@ -103,133 +117,34 @@ async def lookup_product_codes():
 # Lookup product codes
 
 lookup_result = asyncio.run(lookup_product_codes())
-valid_products = lookup_result["valid_products"]
-dropped_products = lookup_result["dropped_products"]
+valid_results = lookup_result["valid_products"]
+dropped_results = lookup_result["dropped_products"]
 
-if len(valid_products) == 0:
+if len(valid_results) == 0:
     print("No products were found.")
     exit()
 
-print("Found {} out of {} products.".format(len(valid_products), len(product_codes)))
+print("Found {} out of {} products.".format(len(valid_results), len(product_codes)))
 
-if len(dropped_products) > 0:
+if len(dropped_results) > 0:
     print("Dropping the following product codes:")
-for product in dropped_products:
-    print("  - {}".format(product["product_code"]))
+for result in dropped_results:
+    print("  - {}".format(result["product_code"]))
 
 
-
-# Scrapes a product's details from HTML
-
-def scrape_product_details(product, progress_bar):
-    
-    try:
-        response = requests.get(product["url"]).text
-        scraped_product = {
-            "manufacturer":             "Scraping Failed",
-            "manufacturer_part_number": "Scraping Failed",
-            "lcsc_product_code":        "Scraping Failed",
-            "package":                  "Scraping Failed",
-            "product_description":      "Scraping Failed",
-            "amount_in_stock":          "Scraping Failed",
-            "product_page": product["url"]
-        }
-
-        # Attempt to scrape
-
-        try:
-            scraped_product["manufacturer"] = response.split('<td> Manufacturer </td>')[1].split('class="detail-brand-title">')[1].split('</a>')[0]
-        except:
-            pass
-        try:
-            scraped_product["manufacturer_part_number"] = response.split('<td>Mfr.Part #</td>')[1].split('<td class="detail-mpn-title">')[1].split('</td>')[0]
-        except:
-            pass
-        try:
-            scraped_product["lcsc_product_code"] = response.split('<td>LCSC Part #</td>')[1].split('<td id="product-id" data-id="')[1].split('">')[1].split('</td>')[0]
-        except:
-            pass
-        try:
-            scraped_product["package"] = response.split('<td>Package</td>')[1].split('<td>')[1].split('</td>')[0]
-        except:
-            pass
-        try:
-            scraped_product["product_description"] = response.split('Description</td>')[1].split('<td><p>')[1].split('</p></td>')[0]
-        except:
-            pass
-        try:
-            scraped_product["amount_in_stock"] = response.split('<span class="all-stock">')[1].split('</span>')[0]
-        except:
-            pass
-        try:
-            scraped_product["product_page"] = product["url"]
-        except:
-            pass
-
-        progress_bar()
-        return scraped_product
-    except Exception as err:
-        pass
-
-    progress_bar()
-    return None
-
-
-# Asynchronous product scrape
-
-async def scrape_products():
-
-    event_loop = asyncio.get_running_loop()
-    co_routines = []
-    scraped_data = {
-        "manufacturer": [],
-        "manufacturer_part_number": [],
-        "lcsc_product_code": [],
-        "package": [],
-        "product_description": [],
-        "amount_in_stock": [],
-        "product_page": []
-    }
-
-    # Proceed to scrape product details.
-    with alive_bar(len(valid_products), "Scraping product details from HTML...") as progress_bar:
-
-        # Start asynchronous lookups
-        for product in valid_products:
-            co_routines.append(event_loop.run_in_executor(None, scrape_product_details, product, progress_bar))
-            time.sleep(.1)
-
-        # Process results
-        for co_routine in co_routines:
-
-            scraped_product = await co_routine
-            if scraped_product == None:
-                continue
-
-            scraped_data["manufacturer"].append(scraped_product["manufacturer"])
-            scraped_data["manufacturer_part_number"].append(scraped_product["manufacturer_part_number"])
-            scraped_data["lcsc_product_code"].append(scraped_product["lcsc_product_code"])
-            scraped_data["package"].append(scraped_product["package"])
-            scraped_data["product_description"].append(scraped_product["product_description"])
-            scraped_data["amount_in_stock"].append(scraped_product["amount_in_stock"])
-            scraped_data["product_page"].append(scraped_product["product_page"])
-    
-    return scraped_data
-
-
-scraped_data = asyncio.run(scrape_products())
 output_csv = "LCSC Product Code,Amount in Stock,Package,Manufacturer,Manufacturer Part Number,Product Description,Product Page"
 
-for i in range(len(scraped_data["lcsc_product_code"])):
+for result in valid_results:
+    product_details = result["product_details"]
 
     output_csv += '\n"{}","{}","{}","{}","{}","{}","{}"'.format(
-        scraped_data["lcsc_product_code"][i],
-        scraped_data["amount_in_stock"][i],
-        scraped_data["package"][i],
-        scraped_data["manufacturer"][i],
-        scraped_data["manufacturer_part_number"][i],
-        scraped_data["product_description"][i],
-        scraped_data["product_page"][i]
+        product_details["lcsc_product_code"],
+        product_details["amount_in_stock"],
+        product_details["package"],
+        product_details["manufacturer"],
+        product_details["manufacturer_part_number"],
+        product_details["product_description"],
+        product_details["product_page"]
     )
 
 if opertion_mode == "file":
